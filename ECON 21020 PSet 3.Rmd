@@ -1,0 +1,201 @@
+---
+title: 'ECON 21020 PSet 3'
+author: "Phalgun Garimella"
+fontsize: 12pt
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+header-includes: \usepackage{pdfpages}
+geometry: margin=0.75in
+fig_crop: no
+---
+
+```{r echo=F, include = FALSE}
+library(knitr)
+knitr::opts_chunk$set(fig.width=4, fig.height=3, message=F, warning=F)
+options(width=70, digits=4, scipen=8)
+library(mosaic)
+library(ggplot2)
+library(readxl)
+library(sandwich)
+library(lmtest)
+```
+
+# Question 6a
+
+```{r}
+caschool = read_excel("caschool.xlsx")
+```
+
+There are 420 observations in the data set.
+
+# Question 6b
+
+```{r}
+income = caschool$avginc * 1000
+```
+
+# i.
+
+The variable `income` measures average district income in dollars (as opposed to thousands of dollars like in `avginc`).
+
+# ii.
+
+```{r}
+mean(caschool$avginc)
+sd(caschool$avginc)
+```
+
+The first number displayed is the mean of `avginc`.
+
+The second number displayed is the standard deviation of `avginc`. 
+
+Both values are in thousands of dollars.
+
+# iii.
+
+```{r}
+mean(income)
+sd(income)
+```
+
+The first number displayed is the mean of `income`.
+
+The second number displayed is the standard deviation of `income`. 
+
+Both values are in dollars. 
+
+Given our result in the previous part, the mean and standard deviation for `income` are what we expect because `income` is simply a scaled version of `avginc`. When data is scaled by a constant (in this case it was by a factor of 1000), the mean and standard deviation of that data are also scaled by the same constant. Hence, our results make sense.
+
+# Question 6c
+
+# i.
+
+```{r}
+mean(caschool$math_scr)
+```
+
+The number displayed above is the mean math score across all districts.
+
+# ii. 
+
+```{r}
+math_max_20 = c()
+counter1 = 0
+for (i in 1:420) {
+  if (caschool$str[i] <= 20) {
+    math_max_20 = c(math_max_20, caschool$math_scr[i])
+    counter1 = counter1 + 1
+  }
+}
+fraction1 = counter1 / 420
+mean1 = mean(math_max_20)
+print(fraction1)
+print(mean1)
+```
+
+The first number displayed is the fraction of districts that have an average class size of 20 or fewer students. 
+
+The second number displayed is the mean math score in districts with average class size of 20 or fewer students.
+
+# iii.
+
+```{r}
+math_min_20 = c()
+counter2 = 0
+for (i in 1:420) {
+  if (caschool$str[i] > 20) {
+    math_min_20 = c(math_min_20, caschool$math_scr[i])
+    counter2 = counter2 + 1
+  }
+}
+fraction2 = counter2 /420
+mean2 = mean(math_min_20)
+print(fraction2)
+print(mean2)
+```
+
+The first number displayed is the fraction of districts that have an average class size of more than 20 students. 
+
+The second number displayed is the mean math score in districts with average class size of more than 20 students.
+
+# iv.
+
+We can derive our answer in (i) using our answers in (ii) and (iii). In particular, we can take a weighted average of the mean math score in districts for both groups of average class size using the two fractions calculated earlier.
+
+```{r}
+print(fraction1 * mean1 + fraction2 * mean2)
+```
+
+The result of our calculation is as desired: the mean math score across all districts.
+
+# v.
+
+Let us denote the population mean math score in districts with average class size of 20 or fewer students as $\mu_{str\le20}$.
+
+Let us denote the population mean math score in districts with average class size of more than 20 students as $\mu_{str>20}$.
+
+Our hypotheses, using the population level conditional expectations described above, are as follows:
+
+$H_0: \mu_{str\le20} = \mu_{str>20}$
+
+$H_1: \mu_{str\le20} \neq \mu_{str>20}$
+
+Since we are faced with a difference of means problem, we can conduct a two-sided, two-sample t-test. We can calculate our test statistic using the formula $T = |\frac{\bar{Y}_{str>20} - \bar{Y}_{str\le20}}{\sqrt{\frac{s_{str>20}^2}{N_{str>20}} + \frac{s_{str\le20}^2}{N_{str\le20}}}}|$, where:
+
+$\bar{Y}_{str>20}$ is the sample mean math score in districts with average class size of more than 20 students.
+
+$\bar{Y}_{str\le20}$ is the sample mean math score in districts with average class size of 20 or fewer students.
+
+$s_{str>20}^2$ is the sample variance of the math score in districts with average class size of more than 20 students.
+
+$s_{str\le20}^2$ is the sample variance of the math score in districts with average class size of 20 or fewer students.
+
+$N_{str>20}$ is the sample size of the districts with average class size of more than 20 students.
+
+$N_{str\le20}$ is the sample size of the districts with average class size of 20 or fewer students.
+
+```{r}
+t_stat = abs((mean2 - mean1) / 
+               sqrt(var(math_min_20) / counter2 + var(math_max_20) / counter1))
+print(t_stat)
+```
+
+Given the value of our test statistic displayed above, we can now find our p-value using $df = 420 - 2 = 418$ and make a conclusion at the 10% level.
+
+```{r}
+2 * pt(q = t_stat, df = 418, lower.tail = FALSE)
+```
+
+
+Since the p-value displayed above is less than 0.1, we reject the null hypothesis at the 10% level in favor of the alternate hypothesis that the population mean math score in districts with average class size of 20 or fewer students is different from the population mean math score in districts with average class size of more than 20 students.
+
+# vi.
+
+```{r}
+cov(caschool$avginc, caschool$math_scr)
+cov(income, caschool$math_scr)
+```
+
+The first number displayed is the covariance between `avginc` and `math_scr` with units thousands of dollars $\cdot$ points.
+
+The second number displayed is the covariance between `income` and `math_scr` with units dollars $\cdot$ points.
+
+The two covariances are different due to properties of covariance. If we consider $Cov[aX, Y]$ where $a$ is some constant, we observe $Cov[aX, Y] = \mathbb{E}[aXY] - \mathbb{E}[aX]\mathbb{E}[Y] = a\mathbb{E}[XY] - a\mathbb{E}[X]\mathbb{E}[Y] = a(\mathbb{E}[XY] - \mathbb{E}[X]\mathbb{E}[Y]) = aCov[X, Y]$. Hence, since we scale `avginc` by a constant to get `income`, we can see that the covariance between `income` and `math_scr` is scaled by the same constant compared to the covariance between `avginc` and `math_scr`.
+
+# vii.
+
+```{r}
+cor(caschool$avginc, caschool$math_scr)
+cor(income, caschool$math_scr)
+```
+
+The first number displayed is the correlation between `avginc` and `math_scr`.
+
+The second number displayed is the correlation between `income` and `math_scr`.
+
+Since these two values are correlations, they are unit-less.
+
+The two correlations are the same due to properties of correlation -- since we normalize each covariance by the standard deviation of both metrics, the scaling of `income` compared to `avginc` is irrelevant. If we consider $Corr[aX, Y]$ where $a$ is some constant, we observe $Corr[aX, Y] = \frac{Cov[aX, Y]}{\sigma_{aX}\sigma_Y} = \frac{aCov[X, Y]}{a\sigma_X\sigma_Y} = \frac{Cov[X, Y]}{\sigma_X\sigma_Y} = Corr[X, Y]$. Hence, since we scale `avginc` by a constant to get `income`, we can see that the correlation in either case remains the same.
